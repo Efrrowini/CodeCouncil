@@ -1,21 +1,32 @@
 import json
+import concurrent.futures
 from agents import security, performance, cleancode, techlead
 from agents.base_agent import call_qwen
 
 def run_debate(diff: str) -> dict:
-    print("=== ROUND 1: Independent Analysis ===")
+    print("=== ROUND 1: Independent Analysis (parallel) ===")
     
-    sec = security.review(diff)
-    perf = performance.review(diff)
-    clean = cleancode.review(diff)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        sec_future = executor.submit(security.review, diff)
+        perf_future = executor.submit(performance.review, diff)
+        clean_future = executor.submit(cleancode.review, diff)
+        
+        sec = sec_future.result()
+        perf = perf_future.result()
+        clean = clean_future.result()
     
     round1 = [sec, perf, clean]
     
-    print("=== ROUND 2: Debate ===")
+    print("=== ROUND 2: Debate (parallel) ===")
     
-    sec_rebuttal = debate_response(diff, sec, [perf, clean])
-    perf_rebuttal = debate_response(diff, perf, [sec, clean])
-    clean_rebuttal = debate_response(diff, clean, [sec, perf])
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        sec_future = executor.submit(debate_response, diff, sec, [perf, clean])
+        perf_future = executor.submit(debate_response, diff, perf, [sec, clean])
+        clean_future = executor.submit(debate_response, diff, clean, [sec, perf])
+        
+        sec_rebuttal = sec_future.result()
+        perf_rebuttal = perf_future.result()
+        clean_rebuttal = clean_future.result()
     
     round2 = [sec_rebuttal, perf_rebuttal, clean_rebuttal]
     
@@ -65,7 +76,6 @@ Respond in this exact JSON format:
 }}
 
 Be a specialist — disagree when other agents venture outside their domain.
-For example if SecurityAuditor talks about performance, PerfEngineer should push back.
 Return raw JSON only, no markdown, no extra text."""
 
     user_message = f"""Your original review:
