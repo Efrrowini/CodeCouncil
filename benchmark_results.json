@@ -1,0 +1,94 @@
+{
+  "summary": {
+    "baseline_detection": 45,
+    "council_detection": 67,
+    "improvement_percent": 22,
+    "baseline_verdict_accuracy": "2/3",
+    "council_verdict_accuracy": "2/3"
+  },
+  "cases": [
+    {
+      "case": "SQL Injection + Hardcoded Secret",
+      "baseline": {
+        "issues_found": 3,
+        "detection_score": 67,
+        "verdict": "BLOCK",
+        "verdict_correct": true,
+        "confidence": 100,
+        "categories_covered": [
+          "security",
+          "performance"
+        ],
+        "time_seconds": 6.8
+      },
+      "council": {
+        "issues_found": 6,
+        "detection_score": 67,
+        "verdict": "BLOCK",
+        "verdict_correct": true,
+        "confidence": 100,
+        "categories_covered": [
+          "security",
+          "performance"
+        ],
+        "time_seconds": 52.2,
+        "debate_rounds": 3
+      }
+    },
+    {
+      "case": "N+1 Query + Missing Error Handling",
+      "baseline": {
+        "issues_found": 2,
+        "detection_score": 67,
+        "verdict": "BLOCK",
+        "verdict_correct": true,
+        "confidence": 95,
+        "categories_covered": [
+          "security",
+          "performance"
+        ],
+        "time_seconds": 4.6
+      },
+      "council": {
+        "issues_found": 6,
+        "detection_score": 100,
+        "verdict": "BLOCK",
+        "verdict_correct": true,
+        "confidence": 100,
+        "categories_covered": [
+          "security",
+          "performance"
+        ],
+        "time_seconds": 48.8,
+        "debate_rounds": 3
+      }
+    },
+    {
+      "case": "Clean Code \u2014 Poor Naming + No Tests",
+      "baseline": {
+        "issues_found": 3,
+        "detection_score": 0,
+        "verdict": "BLOCK",
+        "verdict_correct": false,
+        "confidence": 95,
+        "categories_covered": [
+          "security",
+          "quality"
+        ],
+        "time_seconds": 7.9
+      },
+      "council": {
+        "issues_found": 4,
+        "detection_score": 33,
+        "verdict": "BLOCK",
+        "verdict_correct": false,
+        "confidence": 97,
+        "categories_covered": [
+          "quality"
+        ],
+        "time_seconds": 43.1,
+        "debate_rounds": 3
+      }
+    }
+  ]
+}

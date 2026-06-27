@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeCouncil — Multi-Agent PR Review</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+  
+  .header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 32px; display: flex; align-items: center; gap: 12px; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header .badge { background: #1f6feb; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; }
+  .logo { font-size: 24px; }
+
+  .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+
+  .input-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+  .input-card h2 { font-size: 16px; margin-bottom: 16px; color: #8b949e; }
+  .input-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .input-row input { flex: 1; min-width: 200px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; color: #e6edf3; font-size: 14px; outline: none; }
+  .input-row input:focus { border-color: #1f6feb; }
+  .btn { background: #1f6feb; color: white; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: #388bfd; }
+  .btn:disabled { background: #30363d; cursor: not-allowed; }
+
+  .debate-area { display: none; }
+  .debate-area.active { display: block; }
+
+  .section-title { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+
+  .agent-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  
+  .agent-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; opacity: 0.3; transition: all 0.4s; }
+  .agent-card.active { opacity: 1; border-color: var(--color); box-shadow: 0 0 12px var(--glow); }
+  .agent-card .agent-name { font-size: 13px; font-weight: 600; color: var(--color); margin-bottom: 4px; }
+  .agent-card .agent-role { font-size: 11px; color: #8b949e; margin-bottom: 12px; }
+  .agent-card .verdict-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .verdict-BLOCK { background: #3d1a1a; color: #f85149; }
+  .verdict-REQUEST_CHANGES { background: #2d2000; color: #e3b341; }
+  .verdict-APPROVE { background: #0f2a1a; color: #3fb950; }
+  .agent-card .confidence { font-size: 11px; color: #8b949e; margin-top: 8px; }
+  .agent-card .issues-count { font-size: 11px; color: #8b949e; margin-top: 4px; }
+
+  .debate-feed { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin-bottom: 32px; }
+  .message { padding: 12px 0; border-bottom: 1px solid #21262d; animation: fadeIn 0.4s ease; }
+  .message:last-child { border-bottom: none; }
+  .message-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .agent-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color); }
+  .agent-label { font-size: 12px; font-weight: 600; color: var(--color); }
+  .round-label { font-size: 11px; color: #8b949e; background: #21262d; padding: 1px 8px; border-radius: 10px; }
+  .message-body { font-size: 13px; color: #c9d1d9; line-height: 1.6; padding-left: 16px; }
+  .agree { color: #3fb950; }
+  .disagree { color: #f85149; }
+
+  .final-verdict { background: #161b22; border: 2px solid #30363d; border-radius: 12px; padding: 24px; margin-bottom: 32px; display: none; animation: fadeIn 0.6s ease; }
+  .final-verdict.show { display: block; }
+  .final-verdict.BLOCK { border-color: #f85149; }
+  .final-verdict.APPROVE { border-color: #3fb950; }
+  .final-verdict.REQUEST_CHANGES { border-color: #e3b341; }
+  .verdict-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .verdict-emoji { font-size: 32px; }
+  .verdict-title { font-size: 22px; font-weight: 700; }
+  .verdict-title.BLOCK { color: #f85149; }
+  .verdict-title.APPROVE { color: #3fb950; }
+  .verdict-title.REQUEST_CHANGES { color: #e3b341; }
+  .verdict-summary { color: #8b949e; font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+  .winner-box { background: #21262d; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #c9d1d9; line-height: 1.6; }
+  .winner-box strong { color: #e3b341; }
+
+  .issues-list { margin-bottom: 32px; }
+  .issue-item { background: #161b22; border: 1px solid #30363d; border-left: 3px solid var(--sev-color); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; animation: fadeIn 0.4s ease; }
+  .issue-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .sev-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .sev-CRITICAL { background: #3d1a1a; color: #f85149; }
+  .sev-HIGH { background: #2d1e00; color: #e3b341; }
+  .sev-MEDIUM { background: #1a2a1a; color: #3fb950; }
+  .sev-LOW { background: #1a1a2d; color: #79c0ff; }
+  .from-agent { font-size: 11px; color: #8b949e; }
+  .issue-desc { font-size: 13px; color: #c9d1d9; margin-bottom: 6px; }
+  .issue-fix { font-size: 12px; color: #8b949e; }
+  .issue-fix span { color: #3fb950; }
+
+  .status-bar { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: #8b949e; display: flex; align-items: center; gap: 8px; }
+  .spinner { width: 14px; height: 14px; border: 2px solid #30363d; border-top-color: #1f6feb; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+  .spinner.active { display: block; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .powered { text-align: center; color: #30363d; font-size: 12px; padding: 32px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">⚖️</span>
+  <h1>CodeCouncil</h1>
+  <span class="badge">Multi-Agent PR Review</span>
+</div>
+
+<div class="container">
+  <div class="input-card">
+    <h2>Review a Pull Request</h2>
+    <div class="input-row">
+      <input type="text" id="repo" placeholder="owner/repo  e.g. Efrrowini/codecouncil-test" />
+      <input type="number" id="pr-number" placeholder="PR number  e.g. 1" />
+      <button class="btn" id="review-btn" onclick="startReview()">Start Review</button>
+    </div>
+  </div>
+
+  <div class="debate-area" id="debate-area">
+    <div class="status-bar">
+      <div class="spinner" id="spinner"></div>
+      <span id="status-text">Ready</span>
+    </div>
+
+    <p class="section-title">Agent Panel</p>
+    <div class="agent-cards">
+      <div class="agent-card" id="card-security" style="--color:#f85149;--glow:rgba(248,81,73,0.2)">
+        <div class="agent-name">🔴 SecurityAuditor</div>
+        <div class="agent-role">Security & vulnerabilities</div>
+        <div id="sec-verdict">—</div>
+        <div class="confidence" id="sec-conf"></div>
+        <div class="issues-count" id="sec-issues"></div>
+      </div>
+      <div class="agent-card" id="card-perf" style="--color:#e3b341;--glow:rgba(227,179,65,0.2)">
+        <div class="agent-name">🟡 PerfEngineer</div>
+        <div class="agent-role">Performance & scalability</div>
+        <div id="perf-verdict">—</div>
+        <div class="confidence" id="perf-conf"></div>
+        <div class="issues-count" id="perf-issues"></div>
+      </div>
+      <div class="agent-card" id="card-clean" style="--color:#3fb950;--glow:rgba(63,185,80,0.2)">
+        <div class="agent-name">🟢 CleanCodeReviewer</div>
+        <div class="agent-role">Code quality & patterns</div>
+        <div id="clean-verdict">—</div>
+        <div class="confidence" id="clean-conf"></div>
+        <div class="issues-count" id="clean-issues"></div>
+      </div>
+      <div class="agent-card" id="card-lead" style="--color:#a371f7;--glow:rgba(163,113,247,0.2)">
+        <div class="agent-name">🟣 TechLead</div>
+        <div class="agent-role">Final arbitration</div>
+        <div id="lead-verdict">—</div>
+        <div class="confidence" id="lead-conf"></div>
+        <div class="issues-count" id="lead-issues"></div>
+      </div>
+    </div>
+
+    <p class="section-title">Live Debate Feed</p>
+    <div class="debate-feed" id="debate-feed"></div>
+
+    <div class="final-verdict" id="final-verdict">
+      <div class="verdict-header">
+        <span class="verdict-emoji" id="verdict-emoji"></span>
+        <span class="verdict-title" id="verdict-title"></span>
+      </div>
+      <div class="verdict-summary" id="verdict-summary"></div>
+      <div class="winner-box" id="winner-box"></div>
+    </div>
+
+    <p class="section-title" id="issues-title" style="display:none">Priority Issues</p>
+    <div class="issues-list" id="issues-list"></div>
+  </div>
+</div>
+
+<div class="powered">Powered by CodeCouncil — Multi-Agent PR Review System on Qwen Cloud</div>
+
+<script>
+const COLORS = {
+  SecurityAuditor: '#f85149',
+  PerfEngineer: '#e3b341',
+  CleanCodeReviewer: '#3fb950',
+  TechLead: '#a371f7'
+};
+
+function setStatus(msg, spinning = false) {
+  document.getElementById('status-text').textContent = msg;
+  document.getElementById('spinner').classList.toggle('active', spinning);
+}
+
+function addMessage(agent, round, content, type = '') {
+  const feed = document.getElementById('debate-feed');
+  const color = COLORS[agent] || '#8b949e';
+  const div = document.createElement('div');
+  div.className = 'message';
+  div.style.setProperty('--color', color);
+  div.innerHTML = `
+    <div class="message-header">
+      <div class="agent-dot"></div>
+      <span class="agent-label">${agent}</span>
+      <span class="round-label">Round ${round}</span>
+    </div>
+    <div class="message-body ${type}">${content}</div>
+  `;
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function setVerdict(cardId, verdictId, confId, issuesId, verdict, confidence, issueCount) {
+  document.getElementById(cardId).classList.add('active');
+  const vEl = document.getElementById(verdictId);
+  vEl.innerHTML = `<span class="verdict-badge verdict-${verdict}">${verdict.replace('_', ' ')}</span>`;
+  document.getElementById(confId).textContent = `Confidence: ${confidence}%`;
+  if (issueCount !== undefined) {
+    document.getElementById(issuesId).textContent = `Issues found: ${issueCount}`;
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function startReview() {
+  const repo = document.getElementById('repo').value.trim();
+  const prNumber = document.getElementById('pr-number').value.trim();
+  if (!repo || !prNumber) { alert('Please enter repo and PR number'); return; }
+
+  document.getElementById('debate-area').classList.add('active');
+  document.getElementById('debate-feed').innerHTML = '';
+  document.getElementById('issues-list').innerHTML = '';
+  document.getElementById('final-verdict').className = 'final-verdict';
+  document.getElementById('issues-title').style.display = 'none';
+  document.getElementById('review-btn').disabled = true;
+
+  ['card-security','card-perf','card-clean','card-lead'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  ['sec-verdict','perf-verdict','clean-verdict','lead-verdict'].forEach(id => {
+    document.getElementById(id).innerHTML = '—';
+  });
+  ['sec-conf','perf-conf','clean-conf','lead-conf','sec-issues','perf-issues','clean-issues','lead-issues'].forEach(id => {
+    document.getElementById(id).textContent = '';
+  });
+
+  setStatus('Fetching PR diff from GitHub...', true);
+  await sleep(800);
+  setStatus('Round 1: Agents analyzing independently...', true);
+  addMessage('SecurityAuditor', 1, 'Scanning for security vulnerabilities...');
+  await sleep(600);
+  addMessage('PerfEngineer', 1, 'Analyzing performance and complexity...');
+  await sleep(600);
+  addMessage('CleanCodeReviewer', 1, 'Reviewing code quality and patterns...');
+  await sleep(400);
+
+  setStatus('Calling CodeCouncil API...', true);
+
+  let data;
+  try {
+    const res = await fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo, pr_number: parseInt(prNumber) })
+    });
+    data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'API error');
+  } catch (err) {
+    setStatus('Error: ' + err.message, false);
+    document.getElementById('review-btn').disabled = false;
+    return;
+  }
+
+  const { round1, round2, final } = data;
+
+  setStatus('Round 1 complete — showing results...', true);
+  await sleep(500);
+
+  const r1map = {};
+  round1.forEach(a => r1map[a.agent] = a);
+
+  setVerdict('card-security', 'sec-verdict', 'sec-conf', 'sec-issues',
+    r1map.SecurityAuditor?.verdict || 'APPROVE',
+    r1map.SecurityAuditor?.confidence || 0,
+    r1map.SecurityAuditor?.issues?.length);
+  addMessage('SecurityAuditor', 1, r1map.SecurityAuditor?.summary || '');
+  await sleep(600);
+
+  setVerdict('card-perf', 'perf-verdict', 'perf-conf', 'perf-issues',
+    r1map.PerfEngineer?.verdict || 'APPROVE',
+    r1map.PerfEngineer?.confidence || 0,
+    r1map.PerfEngineer?.issues?.length);
+  addMessage('PerfEngineer', 1, r1map.PerfEngineer?.summary || '');
+  await sleep(600);
+
+  setVerdict('card-clean', 'clean-verdict', 'clean-conf', 'clean-issues',
+    r1map.CleanCodeReviewer?.verdict || 'APPROVE',
+    r1map.CleanCodeReviewer?.confidence || 0,
+    r1map.CleanCodeReviewer?.issues?.length);
+  addMessage('CleanCodeReviewer', 1, r1map.CleanCodeReviewer?.summary || '');
+  await sleep(800);
+
+  setStatus('Round 2: Agents debating each other...', true);
+  await sleep(500);
+
+  for (const agent of round2) {
+    const name = agent.agent;
+    for (const a of (agent.agreements || [])) {
+      addMessage(name, 2, `✅ Agrees with <strong>${a.with_agent}</strong>: ${a.reason}`, 'agree');
+      await sleep(400);
+    }
+    for (const d of (agent.disagreements || [])) {
+      addMessage(name, 2, `❌ Disagrees with <strong>${d.with_agent}</strong>: ${d.reason}`, 'disagree');
+      await sleep(400);
+    }
+    if (agent.new_findings) {
+      addMessage(name, 2, `🔍 New finding: ${agent.new_findings}`);
+      await sleep(400);
+    }
+  }
+
+  setStatus('Round 3: TechLead making final verdict...', true);
+  await sleep(800);
+  addMessage('TechLead', 3, final.debate_summary || '');
+  await sleep(600);
+
+  const verdictEmoji = { BLOCK: '🚫', APPROVE: '✅', REQUEST_CHANGES: '⚠️' };
+  const vEl = document.getElementById('final-verdict');
+  vEl.className = `final-verdict show ${final.final_verdict}`;
+  document.getElementById('verdict-emoji').textContent = verdictEmoji[final.final_verdict] || '❓';
+  const titleEl = document.getElementById('verdict-title');
+  titleEl.textContent = `${final.final_verdict?.replace('_', ' ')}`;
+  titleEl.className = `verdict-title ${final.final_verdict}`;
+  document.getElementById('verdict-summary').textContent = final.summary || '';
+  document.getElementById('winner-box').innerHTML = `<strong>🏆 Who won the debate:</strong> ${final.who_won_debate || ''}`;
+
+  setVerdict('card-lead', 'lead-verdict', 'lead-conf', 'lead-issues',
+    final.final_verdict,
+    final.confidence || 0,
+    final.priority_issues?.length);
+
+  if (final.priority_issues?.length) {
+    document.getElementById('issues-title').style.display = 'block';
+    const sevColors = { CRITICAL: '#f85149', HIGH: '#e3b341', MEDIUM: '#3fb950', LOW: '#79c0ff' };
+    for (const issue of final.priority_issues) {
+      const div = document.createElement('div');
+      div.className = 'issue-item';
+      div.style.setProperty('--sev-color', sevColors[issue.severity] || '#8b949e');
+      div.innerHTML = `
+        <div class="issue-header">
+          <span class="sev-badge sev-${issue.severity}">${issue.severity}</span>
+          <span class="from-agent">from ${issue.from_agent}</span>
+        </div>
+        <div class="issue-desc">${issue.description}</div>
+        <div class="issue-fix">💡 <span>${issue.fix}</span></div>
+      `;
+      document.getElementById('issues-list').appendChild(div);
+      await sleep(200);
+    }
+  }
+
+  setStatus('✅ Review complete — comment posted to GitHub PR', false);
+  document.getElementById('review-btn').disabled = false;
+}
+</script>
+</body>
+</html>

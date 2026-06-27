@@ -1,0 +1,83 @@
+import json
+from agents import security, performance, cleancode, techlead
+from agents.base_agent import call_qwen
+
+def run_debate(diff: str) -> dict:
+    print("=== ROUND 1: Independent Analysis ===")
+    
+    sec = security.review(diff)
+    perf = performance.review(diff)
+    clean = cleancode.review(diff)
+    
+    round1 = [sec, perf, clean]
+    
+    print("=== ROUND 2: Debate ===")
+    
+    sec_rebuttal = debate_response(diff, sec, [perf, clean])
+    perf_rebuttal = debate_response(diff, perf, [sec, clean])
+    clean_rebuttal = debate_response(diff, clean, [sec, perf])
+    
+    round2 = [sec_rebuttal, perf_rebuttal, clean_rebuttal]
+    
+    print("=== ROUND 3: TechLead Final Verdict ===")
+    
+    final = techlead.arbitrate_full(diff, round1, round2)
+    
+    return {
+        "round1": round1,
+        "round2": round2,
+        "final": final
+    }
+
+def debate_response(diff: str, my_opinion: dict, other_opinions: list) -> dict:
+    agent_name = my_opinion.get("agent", "Unknown")
+    
+    others_text = "\n\n".join([
+        f"=== {op.get('agent', 'Unknown')} said ===\n{json.dumps(op, indent=2)}"
+        for op in other_opinions
+    ])
+    
+    system_prompt = f"""You are {agent_name}. You have already reviewed a PR diff.
+Now you can see what your fellow reviewers said.
+You must respond to their points — agree or disagree with specific reasoning.
+
+Respond in this exact JSON format:
+{{
+  "agent": "{agent_name}",
+  "round": 2,
+  "agreements": [
+    {{
+      "with_agent": "agent name",
+      "point": "what you agree with",
+      "reason": "why you agree"
+    }}
+  ],
+  "disagreements": [
+    {{
+      "with_agent": "agent name",
+      "point": "what you disagree with",
+      "reason": "why you disagree from your specialist perspective"
+    }}
+  ],
+  "new_findings": "any new issues you noticed after seeing other perspectives",
+  "updated_verdict": "APPROVE" | "REQUEST_CHANGES" | "BLOCK",
+  "updated_confidence": 0-100
+}}
+
+Be a specialist — disagree when other agents venture outside their domain.
+For example if SecurityAuditor talks about performance, PerfEngineer should push back.
+Return raw JSON only, no markdown, no extra text."""
+
+    user_message = f"""Your original review:
+{json.dumps(my_opinion, indent=2)}
+
+What other agents said:
+{others_text}
+
+Now respond to their points."""
+
+    result = call_qwen(system_prompt, user_message)
+    try:
+        return json.loads(result)
+    except json.JSONDecodeError:
+        return {"agent": agent_name, "round": 2, "error": "parse failed", "raw": result}
