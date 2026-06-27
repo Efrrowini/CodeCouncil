@@ -5,6 +5,9 @@
 ## What is CodeCouncil?
 CodeCouncil is a multi-agent PR review system where 4 specialized AI agents debate pull requests and produce a consensus verdict.
 
+## Architecture
+![CodeCouncil Architecture](architecture.png)
+
 ## Agents
 - 🔴 **SecurityAuditor** — finds vulnerabilities, SQL injection, hardcoded secrets
 - 🟡 **PerfEngineer** — detects N+1 queries, complexity issues, memory leaks  
