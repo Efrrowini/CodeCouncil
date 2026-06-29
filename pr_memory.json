@@ -1,0 +1,34 @@
+{
+  "Efrrowini/codecouncil-test": {
+    "total_reviews": 1,
+    "recurring_issues": {
+      "sql_injection": 3,
+      "hardcoded_secret": 3
+    },
+    "agent_track_record": {
+      "SecurityAuditor": {
+        "blocks": 1,
+        "approves": 0
+      },
+      "PerfEngineer": {
+        "blocks": 1,
+        "approves": 0
+      },
+      "CleanCodeReviewer": {
+        "blocks": 1,
+        "approves": 0
+      }
+    },
+    "reviews": [
+      {
+        "pr_number": 0,
+        "date": "2026-06-29T12:21:52.297483",
+        "final_verdict": "BLOCK",
+        "confidence": 100,
+        "conflicts_detected": 2,
+        "issue_count": 2,
+        "summary": "This PR is blocked due to critical SQL injection and hardcoded API key vulnerabilities that must be fixed before merging."
+      }
+    ]
+  }
+}
