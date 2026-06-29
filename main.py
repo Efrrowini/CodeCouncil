@@ -32,6 +32,8 @@ def process_pr(repo: str, pr_number: int):
 
         print("💬 Posting comment to GitHub...")
         success = post_comment(repo, pr_number, verdict)
+        from core.slack import send_slack_notification
+        send_slack_notification(repo, pr_number, verdict)
 
         if success:
             print(f"✅ Comment posted to PR #{pr_number}")

@@ -1,21 +1,21 @@
 {
   "Efrrowini/codecouncil-test": {
-    "total_reviews": 1,
+    "total_reviews": 4,
     "recurring_issues": {
-      "sql_injection": 3,
-      "hardcoded_secret": 3
+      "sql_injection": 14,
+      "hardcoded_secret": 12
     },
     "agent_track_record": {
       "SecurityAuditor": {
-        "blocks": 1,
+        "blocks": 4,
         "approves": 0
       },
       "PerfEngineer": {
-        "blocks": 1,
+        "blocks": 4,
         "approves": 0
       },
       "CleanCodeReviewer": {
-        "blocks": 1,
+        "blocks": 4,
         "approves": 0
       }
     },
@@ -28,6 +28,33 @@
         "conflicts_detected": 2,
         "issue_count": 2,
         "summary": "This PR is blocked due to critical SQL injection and hardcoded API key vulnerabilities that must be fixed before merging."
+      },
+      {
+        "pr_number": 0,
+        "date": "2026-06-29T13:15:00.941349",
+        "final_verdict": "BLOCK",
+        "confidence": 100,
+        "conflicts_detected": 0,
+        "issue_count": 2,
+        "summary": "This PR must be blocked until the critical SQL injection vulnerability and hardcoded API key are fully remediated using parameterized queries and secure secret management."
+      },
+      {
+        "pr_number": 0,
+        "date": "2026-06-29T13:17:00.749700",
+        "final_verdict": "BLOCK",
+        "confidence": 100,
+        "conflicts_detected": 0,
+        "issue_count": 2,
+        "summary": "This PR must be blocked until the critical SQL injection vulnerability and hardcoded API key are fixed using parameterized queries and environment-based secret management."
+      },
+      {
+        "pr_number": 0,
+        "date": "2026-06-29T13:24:10.610620",
+        "final_verdict": "BLOCK",
+        "confidence": 100,
+        "conflicts_detected": 5,
+        "issue_count": 3,
+        "summary": "BLOCK: This PR contains critical, exploitable SQL injection vulnerabilities and a hardcoded API key that must be fixed before merge."
       }
     ]
   }
